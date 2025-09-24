@@ -1,0 +1,41 @@
+#!/bin/bash
+set -euo pipefail
+
+TARGET_DIR="target"
+SRC_DIR="src"
+LIB_DIR="lib"
+JAR_NAME="frameWork.jar"
+MAIN_CLASS="com.example.Main"  # ⚠️ change ça selon ton projet
+
+mkdir -p "$TARGET_DIR"
+
+# Construire le classpath avec toutes les libs présentes dans lib/
+CLASSPATH="."
+if [ -d "$LIB_DIR" ]; then
+  for jar in "$LIB_DIR"/*.jar; do
+    [ -e "$jar" ] || continue
+    CLASSPATH="$CLASSPATH:$jar"
+  done
+fi
+
+echo "Classpath utilisé: $CLASSPATH"
+
+SOURCES_FILE=$(mktemp)
+trap 'rm -f "$SOURCES_FILE"' EXIT
+
+find "$SRC_DIR" -name "*.java" > "$SOURCES_FILE"
+
+if [ ! -s "$SOURCES_FILE" ]; then
+  echo "Aucun fichier .java trouvé dans $SRC_DIR"
+  exit 0
+fi
+
+javac -d "$TARGET_DIR" -cp "$CLASSPATH" @"$SOURCES_FILE"
+
+echo "Compilation terminée. Création du JAR..."
+
+# Création du JAR exécutable
+cd "$TARGET_DIR"
+jar cfe "$JAR_NAME" "$MAIN_CLASS" $(find . -type f -name "*.class")
+
+echo "JAR créé : $TARGET_DIR/$JAR_NAME"
