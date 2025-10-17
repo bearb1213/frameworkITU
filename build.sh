@@ -39,3 +39,16 @@ cd "$TARGET_DIR"
 jar cfe "$JAR_NAME" "$MAIN_CLASS" $(find . -type f -name "*.class")
 
 echo "JAR créé : $TARGET_DIR/$JAR_NAME"
+
+
+SOURCE_FILE="/home/mrtsila/Documents/S5/FrameWork/frameworkITU/target/frameWork.jar"
+DEST1="/home/mrtsila/Documents/S5/FrameWork/frameworkITUTest/webapp/WEB-INF/lib/"
+DEST2="/home/mrtsila/Documents/S5/FrameWork/frameworkITUTest/lib/"
+
+# Supprimer les fichiers existants puis copier
+rm -f "$DEST1/$(basename "$SOURCE_FILE")"
+rm -f "$DEST2/$(basename "$SOURCE_FILE")"
+
+
+cp "$SOURCE_FILE" "$DEST1"
+cp "$SOURCE_FILE" "$DEST2"
