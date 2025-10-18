@@ -52,3 +52,5 @@ rm -f "$DEST2/$(basename "$SOURCE_FILE")"
 
 cp "$SOURCE_FILE" "$DEST1"
 cp "$SOURCE_FILE" "$DEST2"
+
+echo "JAR remplace : $DEST1 , $DEST2"
