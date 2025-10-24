@@ -21,7 +21,9 @@ public class AnnotationGetteur {
                 String nomClass = packageName+"."+file.getName().substring(0 , file.getName().length() - 6) ;               
                 try {
                     Class<?> clazz = Class.forName(nomClass);
-                    classList.add(clazz);
+                    if(clazz.isAnnotationPresent(Controller.class)){
+                        classList.add(clazz);
+                    }
                 } catch (Exception e) {
                     System.err.println("La class "+nomClass+" ne peut pas etre charger");
                 }
