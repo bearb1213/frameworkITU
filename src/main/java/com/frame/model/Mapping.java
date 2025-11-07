@@ -1,4 +1,4 @@
-package com.frame.annotation;
+package com.frame.model;
 
 import java.lang.reflect.Method;
 
