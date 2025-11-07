@@ -37,7 +37,7 @@ public class AnnotationGetteur {
     }
 
     //scan tous les classes dans un file avec une annotation precise
-    private static <T extends Annotation> void scanDirectoryWithAnnotation(File directory , String packageName , List<Class<?>> classList , Class<T> annonationClass) throws Exception{
+    private static <T extends Annotation> void scanDirectoryWithAnnotation(File directory , String packageName , List<Class<?>> classList ) throws Exception{
         File [] files = directory.listFiles();
         if (files==null) return ;
 
@@ -48,7 +48,7 @@ public class AnnotationGetteur {
                 String nomClass = packageName+"."+file.getName().substring(0 , file.getName().length() - 6) ;               
                 try {
                     Class<?> clazz = Class.forName(nomClass);
-                    if(clazz.isAnnotationPresent(annonationClass)){
+                    if(clazz.isAnnotationPresent(Controller.class)){
                         classList.add(clazz);
                     }
                 } catch (Exception e) {
@@ -77,8 +77,10 @@ public class AnnotationGetteur {
         return classes;
     }
 
+    
+
     //get all classes dans un package et ces fichier interne avec une annotation precise
-    private static <T extends Annotation> List<Class<?>> getAllClassesWithAnnotation(String packageProject , Class<T> annotationClass) throws Exception{
+    public  static <T extends Annotation> List<Class<?>> getAllClassesWithAnnotation(String packageProject ) throws Exception{
         List<Class<?>> classes = new ArrayList<>();
 
         String path = packageProject.replace(".", "/");
@@ -91,9 +93,22 @@ public class AnnotationGetteur {
         if (!directory.exists()) {
             throw new Exception("Répertoire non trouvé: " + directory.getAbsolutePath());
         }
-        scanDirectoryWithAnnotation(directory, packageProject, classes , annotationClass);
+        scanDirectoryWithAnnotation(directory, packageProject, classes);
 
         return classes;
+    }
+
+    public static List<Class<?>> getAllClassesController(String packageProject) throws Exception {
+        List<Class<?>> classesAnnot = new ArrayList<>();
+        List<Class<?>> classes = getAllClasses(packageProject);
+
+        for (Class<?> class1 : classes) {
+            if(class1.isAnnotationPresent(Controller.class)){
+                classesAnnot.add(class1);
+            }
+        }
+
+        return classesAnnot;
     }
 
     //get liste des methodes dans une package
@@ -110,10 +125,10 @@ public class AnnotationGetteur {
     }
 
     //get liste des methodes dans une package avec annotation de class precise
-    private static <T extends Annotation> List<Method> getAllMethodsWithAnnotation(String packageProject, Class<T> annotationClass) throws Exception{
+    private static <T extends Annotation> List<Method> getAllMethodsWithAnnotation(String packageProject) throws Exception{
         List<Method> methods = new ArrayList<>();
 
-        for (Class<?> class1 : getAllClassesWithAnnotation(packageProject,annotationClass)) {
+        for (Class<?> class1 : getAllClassesController(packageProject)) {
             for (Method method : class1.getDeclaredMethods()){
                 methods.add(method);
             }
@@ -133,9 +148,9 @@ public class AnnotationGetteur {
         return annotations;
     }
 
-    public static <T extends Annotation> List<T> getAllAnnotationInMethodWithAnnotation(String packageProject, Class<T> annotationClass , Class<T> classAnnotationClass) throws Exception {
+    public static <T extends Annotation> List<T> getAllAnnotationInMethodWithAnnotation(String packageProject, Class<T> annotationClass ) throws Exception {
         List<T> annotations = new ArrayList<>();
-        for(Method method : getAllMethodsWithAnnotation(packageProject,classAnnotationClass)){
+        for(Method method : getAllMethodsWithAnnotation(packageProject)){
             if (method.isAnnotationPresent(annotationClass)) {
                 annotations.add(method.getAnnotation(annotationClass));
             }
@@ -146,7 +161,7 @@ public class AnnotationGetteur {
 
     public static List<GetMapping> getAllGetMapping(String packageProject)throws Exception{
         List<GetMapping> get = new ArrayList<>();
-        for (Method method : getAllMethodsWithAnnotation(packageProject,Controller.class)) {
+        for (Method method : getAllMethodsWithAnnotation(packageProject)) {
             if (method.isAnnotationPresent(GetMapping.class)) {
                 get.add(method.getAnnotation(GetMapping.class));
             }
@@ -157,7 +172,7 @@ public class AnnotationGetteur {
 
     public static List<PostMapping> getAllPostMapping(String packageProject)throws Exception{
         List<PostMapping> post = new ArrayList<>();
-        for (Method method : getAllMethodsWithAnnotation(packageProject,Controller.class)) {
+        for (Method method : getAllMethodsWithAnnotation(packageProject)) {
             if (method.isAnnotationPresent(PostMapping.class)) {
                 post.add(method.getAnnotation(PostMapping.class));
             }
@@ -168,7 +183,7 @@ public class AnnotationGetteur {
 
     public static List<PutMapping> getAllPutMapping(String packageProject)throws Exception{
         List<PutMapping> put = new ArrayList<>();
-        for (Method method : getAllMethodsWithAnnotation(packageProject,Controller.class)) {
+        for (Method method : getAllMethodsWithAnnotation(packageProject)) {
             if (method.isAnnotationPresent(PutMapping.class)) {
                 put.add(method.getAnnotation(PutMapping.class));
             }
@@ -179,7 +194,7 @@ public class AnnotationGetteur {
 
     public static List<DeleteMapping> getAllDeleteMapping(String packageProject)throws Exception{
         List<DeleteMapping> delete = new ArrayList<>();
-        for (Method method : getAllMethodsWithAnnotation(packageProject,Controller.class)) {
+        for (Method method : getAllMethodsWithAnnotation(packageProject)) {
             if (method.isAnnotationPresent(DeleteMapping.class)) {
                 delete.add(method.getAnnotation(DeleteMapping.class));
             }
@@ -188,6 +203,38 @@ public class AnnotationGetteur {
         return delete;
     }
 
+    public static List<Mapping> getAllMapping(String packageProject) throws Exception{
+        List<Mapping> mappings = new ArrayList<>();
+        List<Class<?>> clazzes = getAllClassesController(packageProject);
+        for (Class<?> class1 : clazzes) {
+            // if (class1.isAnnotationPresent(Controller.class)) {
+                
+                for (Method method : class1.getDeclaredMethods()){
+                    if (method.isAnnotationPresent(GetMapping.class)) {
+                        GetMapping get = method.getAnnotation(GetMapping.class) ;
+                        Mapping mapping = new Mapping(class1, method,get.value(), "GET");
+                        mappings.add(mapping);
+                        
+                    } else if(method.isAnnotationPresent(PostMapping.class)) {
+                        PostMapping post = method.getAnnotation(PostMapping.class) ;
+                        Mapping mapping = new Mapping(class1, method, post.value(), "POST");
+                        mappings.add(mapping);
+                        
+                    } else if(method.isAnnotationPresent(PutMapping.class)) {
+                        PutMapping put = method.getAnnotation(PutMapping.class) ;
+                        Mapping mapping = new Mapping(class1, method, put.value(), "PUT");
+                        mappings.add(mapping);
+                        
+                    } else if(method.isAnnotationPresent(DeleteMapping.class)) {
+                        DeleteMapping delete = method.getAnnotation(DeleteMapping.class) ;
+                        Mapping mapping = new Mapping(class1, method, delete.value(), "DELETE");
+                        mappings.add(mapping);
+                    }
+                }
+            // }
+        }
+        return mappings;
+    }
 
 
 }
