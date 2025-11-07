@@ -9,6 +9,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import com.frame.model.Mapping;
+
 
 public class AnnotationGetteur {
 

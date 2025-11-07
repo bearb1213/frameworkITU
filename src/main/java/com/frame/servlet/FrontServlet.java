@@ -14,7 +14,7 @@ import java.util.Map;
 import java.util.Properties;
 
 import com.frame.annotation.AnnotationGetteur;
-import com.frame.annotation.Mapping;
+import com.frame.model.Mapping;
 
 import jakarta.servlet.ServletException;
 import jakarta.servlet.ServletContext;
@@ -73,39 +73,7 @@ public class FrontServlet extends HttpServlet {
 
         File file = new File(appPath,resourcePath);
         if (file.exists()) {
-            if ( file.isDirectory()){
-
-                // if((new File(appPath,resourcePath+"index.jsp")).exists()){
-                //     response.setContentType("text/html;charset=UTF-8");
-
-                //     try (InputStream in = context.getResourceAsStream(resourcePath+"index.jsp");
-                //         BufferedReader reader = new BufferedReader(new InputStreamReader(in, "UTF-8"));
-                //         PrintWriter out = response.getWriter()) {
-
-                //         String line;
-                //         while ((line = reader.readLine()) != null) {
-                //             out.println(line);
-                //         }
-                //         return;
-                //     }
-                // } else if((new File(appPath,resourcePath+"index.html")).exists()){
-                //     response.setContentType("text/html;charset=UTF-8");
-
-                //     try (InputStream in = context.getResourceAsStream(resourcePath+"index.html");
-                //         BufferedReader reader = new BufferedReader(new InputStreamReader(in, "UTF-8"));
-                //         PrintWriter out = response.getWriter()) {
-
-                //         String line;
-                //         while ((line = reader.readLine()) != null) {
-                //             out.println(line);
-                //         }
-                //         return;
-                //     }
-                // }
-
-
-
-            } else if( file.isFile()){
+            if( file.isFile()){
                 response.setContentType(Files.probeContentType(file.toPath()));
 
                 response.setCharacterEncoding("UTF-8");
@@ -126,16 +94,27 @@ public class FrontServlet extends HttpServlet {
             }
         } else {
             
-            response.setContentType("text/plain");
-            response.setCharacterEncoding("UTF-8");
+            
             Mapping mapping = mappings.get("/"+resourcePath);
             if (mapping==null) {
                 PrintWriter out = response.getWriter();
                 out.print("erreur 404 Not found");
             }else {
-                PrintWriter out = response.getWriter();
-                out.println("class : "+mapping.getClazz().getName() + " ; method : " + mapping.getMethod().getName() + " ; Path : " + mapping.getPath() + " ; Type annotation : "+mapping.getAnnotation());
-
+                if(mapping.getMethod().getReturnType().equals(String.class)){
+                    try {
+                        response.setContentType("text/plain");
+                        response.setCharacterEncoding("UTF-8");
+                        PrintWriter out = response.getWriter();
+                        Object instance = mapping.getClazz().getDeclaredConstructor().newInstance();
+                        String retour = (String)mapping.getMethod().invoke(instance);
+                        out.print(retour);
+                    } catch (Exception e) {
+                        throw new ServletException(e);
+                    }
+                } else {
+                        PrintWriter out = response.getWriter();
+                    out.print("erreur 500");
+                }
             }
             
         }
@@ -158,6 +137,13 @@ public class FrontServlet extends HttpServlet {
 
 
     }
+
+
+
+
+
+
+
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response) 
             throws ServletException, IOException {
@@ -165,10 +151,11 @@ public class FrontServlet extends HttpServlet {
 
         try {
             work(request, response);
-            // print(request, response);
         } catch (Exception e) {
+            e.printStackTrace();
             PrintWriter out = response.getWriter();
-            out.println(e.getMessage());
+            out.print(e);
+            // throw new ServletException(e);
         }
     }
     
@@ -181,8 +168,11 @@ public class FrontServlet extends HttpServlet {
             
             work(request, response);
         } catch (Exception e) {
+
+            e.printStackTrace();
             PrintWriter out = response.getWriter();
-            out.println(e.getMessage());
+            out.print(e);
+            // throw new ServletException(e);
         }
     }
 }
