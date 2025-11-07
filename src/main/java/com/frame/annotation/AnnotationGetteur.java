@@ -5,7 +5,9 @@ import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 
 public class AnnotationGetteur {
@@ -203,8 +205,8 @@ public class AnnotationGetteur {
         return delete;
     }
 
-    public static List<Mapping> getAllMapping(String packageProject) throws Exception{
-        List<Mapping> mappings = new ArrayList<>();
+    public static Map<String ,Mapping> getAllMapping(String packageProject) throws Exception{
+        Map<String,Mapping> mappings = new HashMap<>();
         List<Class<?>> clazzes = getAllClassesController(packageProject);
         for (Class<?> class1 : clazzes) {
             // if (class1.isAnnotationPresent(Controller.class)) {
@@ -213,22 +215,22 @@ public class AnnotationGetteur {
                     if (method.isAnnotationPresent(GetMapping.class)) {
                         GetMapping get = method.getAnnotation(GetMapping.class) ;
                         Mapping mapping = new Mapping(class1, method,get.value(), "GET");
-                        mappings.add(mapping);
+                        mappings.put(mapping.getPath(),mapping);
                         
                     } else if(method.isAnnotationPresent(PostMapping.class)) {
                         PostMapping post = method.getAnnotation(PostMapping.class) ;
                         Mapping mapping = new Mapping(class1, method, post.value(), "POST");
-                        mappings.add(mapping);
+                        mappings.put(mapping.getPath(),mapping);
                         
                     } else if(method.isAnnotationPresent(PutMapping.class)) {
                         PutMapping put = method.getAnnotation(PutMapping.class) ;
                         Mapping mapping = new Mapping(class1, method, put.value(), "PUT");
-                        mappings.add(mapping);
+                        mappings.put(mapping.getPath(),mapping);
                         
                     } else if(method.isAnnotationPresent(DeleteMapping.class)) {
                         DeleteMapping delete = method.getAnnotation(DeleteMapping.class) ;
                         Mapping mapping = new Mapping(class1, method, delete.value(), "DELETE");
-                        mappings.add(mapping);
+                        mappings.put(mapping.getPath(),mapping);
                     }
                 }
             // }

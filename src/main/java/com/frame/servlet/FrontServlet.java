@@ -10,6 +10,7 @@ import java.io.OutputStream;
 import java.io.PrintWriter;
 import java.nio.file.Files;
 import java.util.List;
+import java.util.Map;
 import java.util.Properties;
 
 import com.frame.annotation.AnnotationGetteur;
@@ -24,7 +25,7 @@ import jakarta.servlet.http.HttpServletResponse;
 
 public class FrontServlet extends HttpServlet {
 
-    private List<Mapping> mappings;
+    private Map<String , Mapping > mappings;
     private String packageName;
  
     @Override
@@ -36,7 +37,7 @@ public class FrontServlet extends HttpServlet {
         .getResourceAsStream("/WEB-INF/frame.properties");
             prop.load(input);
             packageName = prop.getProperty("package.name");
-            if (packageName==null) {
+            if (packageName==null || packageName.isEmpty()) {
                 packageName = "";
             }
 
@@ -73,33 +74,34 @@ public class FrontServlet extends HttpServlet {
         File file = new File(appPath,resourcePath);
         if (file.exists()) {
             if ( file.isDirectory()){
-                if((new File(appPath,resourcePath+"index.jsp")).exists()){
-                    response.setContentType("text/html;charset=UTF-8");
 
-                    try (InputStream in = context.getResourceAsStream(resourcePath+"index.jsp");
-                        BufferedReader reader = new BufferedReader(new InputStreamReader(in, "UTF-8"));
-                        PrintWriter out = response.getWriter()) {
+                // if((new File(appPath,resourcePath+"index.jsp")).exists()){
+                //     response.setContentType("text/html;charset=UTF-8");
 
-                        String line;
-                        while ((line = reader.readLine()) != null) {
-                            out.println(line);
-                        }
-                        return;
-                    }
-                } else if((new File(appPath,resourcePath+"index.html")).exists()){
-                    response.setContentType("text/html;charset=UTF-8");
+                //     try (InputStream in = context.getResourceAsStream(resourcePath+"index.jsp");
+                //         BufferedReader reader = new BufferedReader(new InputStreamReader(in, "UTF-8"));
+                //         PrintWriter out = response.getWriter()) {
 
-                    try (InputStream in = context.getResourceAsStream(resourcePath+"index.html");
-                        BufferedReader reader = new BufferedReader(new InputStreamReader(in, "UTF-8"));
-                        PrintWriter out = response.getWriter()) {
+                //         String line;
+                //         while ((line = reader.readLine()) != null) {
+                //             out.println(line);
+                //         }
+                //         return;
+                //     }
+                // } else if((new File(appPath,resourcePath+"index.html")).exists()){
+                //     response.setContentType("text/html;charset=UTF-8");
 
-                        String line;
-                        while ((line = reader.readLine()) != null) {
-                            out.println(line);
-                        }
-                        return;
-                    }
-                }
+                //     try (InputStream in = context.getResourceAsStream(resourcePath+"index.html");
+                //         BufferedReader reader = new BufferedReader(new InputStreamReader(in, "UTF-8"));
+                //         PrintWriter out = response.getWriter()) {
+
+                //         String line;
+                //         while ((line = reader.readLine()) != null) {
+                //             out.println(line);
+                //         }
+                //         return;
+                //     }
+                // }
 
 
 
@@ -126,9 +128,16 @@ public class FrontServlet extends HttpServlet {
             
             response.setContentType("text/plain");
             response.setCharacterEncoding("UTF-8");
-            PrintWriter out = response.getWriter();
-            out.println("Méthode : " + method);
-            out.println("URL : " + url);
+            Mapping mapping = mappings.get("/"+resourcePath);
+            if (mapping==null) {
+                PrintWriter out = response.getWriter();
+                out.print("erreur 404 Not found");
+            }else {
+                PrintWriter out = response.getWriter();
+                out.println("class : "+mapping.getClazz().getName() + " ; method : " + mapping.getMethod().getName() + " ; Path : " + mapping.getPath() + " ; Type annotation : "+mapping.getAnnotation());
+
+            }
+            
         }
         
     }
@@ -140,9 +149,7 @@ public class FrontServlet extends HttpServlet {
         PrintWriter out = response.getWriter();
         try {
             out.println("package name : "+packageName);
-            for (Mapping mapping : mappings) {
-                out.println("class : "+mapping.getClazz().getName() + " ; method : " + mapping.getMethod().getName() + " ; Path : " + mapping.getPath() + " ; Type annotation : "+mapping.getAnnotation());
-            }
+            
         } catch (Exception e) {
             response.setContentType("text/plain");
             response.setCharacterEncoding("UTF-8");
@@ -157,8 +164,8 @@ public class FrontServlet extends HttpServlet {
         
 
         try {
-            
-            print(request, response);
+            work(request, response);
+            // print(request, response);
         } catch (Exception e) {
             PrintWriter out = response.getWriter();
             out.println(e.getMessage());
