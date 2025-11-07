@@ -5,7 +5,7 @@ TARGET_DIR="target"
 SRC_DIR="src"
 LIB_DIR="lib"
 JAR_NAME="frameWork.jar"
-MAIN_CLASS="com.example.Main"  # ⚠️ change ça selon ton projet
+MAIN_CLASS="com.frame.Main"  # ⚠️ change ça selon ton projet
 
 mkdir -p "$TARGET_DIR"
 
@@ -40,15 +40,20 @@ jar cfe "$JAR_NAME" "$MAIN_CLASS" $(find . -type f -name "*.class")
 
 echo "JAR créé : $TARGET_DIR/$JAR_NAME"
 
+echo "pwd : "
+pwd 
 
-SOURCE_FILE="/home/mrtsila/Documents/S5/FrameWork/frameworkITU/target/frameWork.jar"
-DEST1="/home/mrtsila/Documents/S5/FrameWork/frameworkITUTest/webapp/WEB-INF/lib/"
-DEST2="/home/mrtsila/Documents/S5/FrameWork/frameworkITUTest/lib/"
+SOURCE_FILE="frameWork.jar"
+DEST1="/home/mrtsila/Documents/S5/framework/frameworkITUTest/webapp/WEB-INF/lib"
+DEST2="/home/mrtsila/Documents/S5/framework/frameworkITUTest/lib"
+
+# # Créer les répertoires de destination s'ils n'existent pas
+# mkdir -p "$DEST1"
+# mkdir -p "$DEST2"
 
 # Supprimer les fichiers existants puis copier
 rm -f "$DEST1/$(basename "$SOURCE_FILE")"
 rm -f "$DEST2/$(basename "$SOURCE_FILE")"
-
 
 cp "$SOURCE_FILE" "$DEST1"
 cp "$SOURCE_FILE" "$DEST2"
