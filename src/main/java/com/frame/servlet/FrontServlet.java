@@ -13,11 +13,15 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
+import javax.sql.rowset.serial.SerialException;
+
 import com.frame.annotation.AnnotationGetteur;
 import com.frame.model.Mapping;
+import com.frame.model.ModelView;
 
 import jakarta.servlet.ServletException;
 import jakarta.servlet.ServletContext;
+import jakarta.servlet.RequestDispatcher;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -104,15 +108,33 @@ public class FrontServlet extends HttpServlet {
                     try {
                         response.setContentType("text/plain");
                         response.setCharacterEncoding("UTF-8");
+                        
                         PrintWriter out = response.getWriter();
                         Object instance = mapping.getClazz().getDeclaredConstructor().newInstance();
+                        
                         String retour = (String)mapping.getMethod().invoke(instance);
                         out.print(retour);
+                        
+                        return;
                     } catch (Exception e) {
                         throw new ServletException(e);
                     }
-                } else {
-                        PrintWriter out = response.getWriter();
+                } else if (mapping.getMethod().getReturnType().equals(ModelView.class)) {
+                    try {
+                        
+                        Object instance = mapping.getClazz().getDeclaredConstructor().newInstance();
+                        
+                        ModelView retour = (ModelView)mapping.getMethod().invoke(instance);
+                        
+                        RequestDispatcher dispatcher = request.getRequestDispatcher(retour.getView());
+                        dispatcher.forward(request, response);
+                    } catch (Exception e) {
+                        throw new ServletException(e);
+                    }
+
+                    
+                }else {
+                    PrintWriter out = response.getWriter();
                     out.print("erreur 500");
                 }
             }
