@@ -12,6 +12,7 @@ import java.nio.file.Files;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.Map.Entry;
 
 import javax.sql.rowset.serial.SerialException;
 
@@ -84,7 +85,7 @@ public class FrontServlet extends HttpServlet {
 
                 try (InputStream in = new FileInputStream(file);
                     OutputStream out = response.getOutputStream()) {
-
+                    
                     byte[] buffer = new byte[4096]; // 4 Ko
                     int bytesRead;
 
@@ -94,8 +95,8 @@ public class FrontServlet extends HttpServlet {
                     out.flush();
                     return ;
                 }
-
             }
+            
         } else {
             
             
@@ -125,11 +126,17 @@ public class FrontServlet extends HttpServlet {
                         Object instance = mapping.getClazz().getDeclaredConstructor().newInstance();
                         
                         ModelView retour = (ModelView)mapping.getMethod().invoke(instance);
+                        Map<String ,Object> attributs = retour.getAttributs();
+                        if (attributs != null) {   
+                            for (Entry<String , Object> attribut : attributs.entrySet()) {
+                                request.setAttribute(attribut.getKey(),attribut.getValue());
+                            }
+                        }
                         
-                        RequestDispatcher dispatcher = request.getRequestDispatcher(retour.getView());
-                        dispatcher.forward(request, response);
+                        request.getRequestDispatcher(retour.getView()).forward(request, response);
                     } catch (Exception e) {
                         throw new ServletException(e);
+                    
                     }
 
                     
