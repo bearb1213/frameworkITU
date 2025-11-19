@@ -13,6 +13,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Map.Entry;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import javax.sql.rowset.serial.SerialException;
 
@@ -99,9 +101,24 @@ public class FrontServlet extends HttpServlet {
             
         } else {
             
-            
-            Mapping mapping = mappings.get("/"+resourcePath);
+            resourcePath = "/"+resourcePath;
+            Mapping mapping = mappings.get(resourcePath);
             if (mapping==null) {
+                for (Entry<String , Mapping> map : mappings.entrySet()) {
+                    String regex = map.getKey().replaceAll("\\{([^}]+)\\}", "([^/]+)");
+                    Pattern pattern = Pattern.compile(regex);
+                    Matcher matcherPath = pattern.matcher(resourcePath);
+                    if (matcherPath.matches()) {
+                        Matcher matcherKey = pattern.matcher(map.getKey());
+                        while (matcherKey.find() || matcherPath.find()) {
+                            response.setContentType("text/plain");
+                            response.setCharacterEncoding("UTF-8");
+                            PrintWriter out = response.getWriter();
+                            out.print("["+matcherKey.group(1)+"] : " + matcherPath.group(1));
+                        }
+                        return;
+                    }
+                }    
                 PrintWriter out = response.getWriter();
                 out.print("erreur 404 Not found");
             }else {
@@ -134,6 +151,7 @@ public class FrontServlet extends HttpServlet {
                         }
                         
                         request.getRequestDispatcher(retour.getView()).forward(request, response);
+                        return;
                     } catch (Exception e) {
                         throw new ServletException(e);
                     
@@ -167,7 +185,8 @@ public class FrontServlet extends HttpServlet {
 
     }
 
-
+ 
+    
 
 
 
