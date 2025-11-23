@@ -8,6 +8,8 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.PrintWriter;
+import java.lang.reflect.Method;
+import java.lang.reflect.Parameter;
 import java.nio.file.Files;
 import java.util.List;
 import java.util.Map;
@@ -109,74 +111,101 @@ public class FrontServlet extends HttpServlet {
                     Pattern pattern = Pattern.compile(regex);
                     Matcher matcherPath = pattern.matcher(resourcePath);
                     if (matcherPath.matches()) {
-                        PrintWriter out = response.getWriter();
-                        response.setContentType("text/plain");
-                        response.setCharacterEncoding("UTF-8");
+                        // PrintWriter out = response.getWriter();
+                        // response.setContentType("text/plain");
+                        // response.setCharacterEncoding("UTF-8");
 
-                        out.println(resourcePath+ " match with : " + map.getKey()+"\n\n");
+                        // out.println(resourcePath+ " match with : " + map.getKey()+"\n\n");
                         
-                         // Créer un pattern pour extraire les noms des paramètres
-                        Pattern keyPattern = Pattern.compile("\\{([^}]+)\\}");
-                        Matcher keyMatcher = keyPattern.matcher(map.getKey());
+                        //  // Créer un pattern pour extraire les noms des paramètres
+                        // Pattern keyPattern = Pattern.compile("\\{([^}]+)\\}");
+                        // Matcher keyMatcher = keyPattern.matcher(map.getKey());
                         
-                        int groupIndex = 1;
-                        while (keyMatcher.find() && groupIndex <= matcherPath.groupCount()) {
-                            String paramName = keyMatcher.group(1);
-                            String paramValue = matcherPath.group(groupIndex);
-                            out.println("[" + paramName + "] : " + paramValue);
-                            groupIndex++;
-                        }
+                        // int groupIndex = 1;
+                        // while (keyMatcher.find() && groupIndex <= matcherPath.groupCount()) {
+                        //     String paramName = keyMatcher.group(1);
+                        //     String paramValue = matcherPath.group(groupIndex);
+                        //     out.println("[" + paramName + "] : " + paramValue);
+                        //     groupIndex++;
+                        // }
+                        traite(request, response, mapping, null);
                         return;
+
                     }
                 }    
                 PrintWriter out = response.getWriter();
                 out.print("erreur 404 Not found");
             }else {
-                if(mapping.getMethod().getReturnType().equals(String.class)){
-                    try {
-                        response.setContentType("text/plain");
-                        response.setCharacterEncoding("UTF-8");
-                        
-                        PrintWriter out = response.getWriter();
-                        Object instance = mapping.getClazz().getDeclaredConstructor().newInstance();
-                        
-                        String retour = (String)mapping.getMethod().invoke(instance);
-                        out.print(retour);
-                        
-                        return;
-                    } catch (Exception e) {
-                        throw new ServletException(e);
-                    }
-                } else if (mapping.getMethod().getReturnType().equals(ModelView.class)) {
-                    try {
-                        
-                        Object instance = mapping.getClazz().getDeclaredConstructor().newInstance();
-                        
-                        ModelView retour = (ModelView)mapping.getMethod().invoke(instance);
-                        Map<String ,Object> attributs = retour.getAttributs();
-                        if (attributs != null) {   
-                            for (Entry<String , Object> attribut : attributs.entrySet()) {
-                                request.setAttribute(attribut.getKey(),attribut.getValue());
-                            }
-                        }
-                        
-                        request.getRequestDispatcher(retour.getView()).forward(request, response);
-                        return;
-                    } catch (Exception e) {
-                        throw new ServletException(e);
-                    
-                    }
-
-                    
-                }else {
-                    PrintWriter out = response.getWriter();
-                    out.print("erreur 500");
-                }
+                traite(request, response, mapping , null);
             }
             
         }
         
     }
+
+    private void traite(HttpServletRequest request, HttpServletResponse response,Mapping mapping , Map<String , Object> arguments)
+            throws ServletException, IOException {
+        
+        try {
+            // creation de l'instance
+            Object instance = mapping.getClazz().getDeclaredConstructor().newInstance();
+            // recupertation de la methode et ces parametres
+            Method method = mapping.getMethod();
+            Parameter[] parameters = method.getParameters();
+            Object[] parameterToAssign = new Object[parameters.length];
+            // assignation des parametre
+            for (int i = 0; i < parameters.length; i++) {
+                String object = request.getParameter(parameters[i].getName());
+                if (object!= null) {
+                    if (parameters[i].getType().equals(int.class) || parameters[i].getType().equals(Integer.class)) {
+                        parameterToAssign[i] = Integer.parseInt(object);
+                        // parameterToAssign[i] = 1;
+                        
+                    } else if (parameters[i].getType().equals(double.class) || parameters[i].getType().equals(Double.class)) {
+                        parameterToAssign[i] = Double.parseDouble(object);
+                        // parameterToAssign[i] = 2.;
+                    } else if (parameters[i].getType().equals(float.class) || parameters[i].getType().equals(Float.class)) {
+                        parameterToAssign[i] = Float.parseFloat(object);
+                        // parameterToAssign[i] = 3.;
+                    } else if (parameters[i].getType().equals(String.class)) {
+                        parameterToAssign[i] = object;
+                    }
+                }
+                // PrintWriter out = response.getWriter();
+                // out.print(parameters[i].getName());
+            }
+            // invocation de la methode
+            Object retour = method.invoke(instance, parameterToAssign);
+            if (retour.getClass().equals(ModelView.class)) {
+                    
+                ModelView mv = (ModelView) retour;
+                Map<String ,Object> attributs = mv.getAttributs();
+                if (attributs != null) {   
+                    for (Entry<String , Object> attribut : attributs.entrySet()) {
+                        request.setAttribute(attribut.getKey(),attribut.getValue());
+                    }
+                }
+                request.getRequestDispatcher(mv.getView()).forward(request, response);
+                return;
+                // si le retour est string 
+            } else if (retour.getClass().equals(String.class)){
+                String str = (String)retour;
+                response.setContentType("text/plain");
+                response.setCharacterEncoding("UTF-8");
+                PrintWriter out = response.getWriter();
+                // soloina forward rehefa tenenina
+                out.print(str);
+                return;
+            } else {
+                throw new ServletException("Type de retour invalide : "+retour.getClass().getName());
+            }
+        } catch (Exception e) {
+            throw new ServletException(e);
+        } 
+    
+    }
+
+
 
     private void print(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
@@ -194,6 +223,7 @@ public class FrontServlet extends HttpServlet {
 
 
     }
+
 
  
     
