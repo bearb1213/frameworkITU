@@ -13,6 +13,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Map.Entry;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import javax.sql.rowset.serial.SerialException;
 
@@ -99,9 +101,34 @@ public class FrontServlet extends HttpServlet {
             
         } else {
             
-            
-            Mapping mapping = mappings.get("/"+resourcePath);
+            resourcePath = "/"+resourcePath;
+            Mapping mapping = mappings.get(resourcePath);
             if (mapping==null) {
+                for (Entry<String , Mapping> map : mappings.entrySet()) {
+                    String regex = map.getKey().replaceAll("\\{([^}]+)\\}", "([^/]+)");
+                    Pattern pattern = Pattern.compile(regex);
+                    Matcher matcherPath = pattern.matcher(resourcePath);
+                    if (matcherPath.matches()) {
+                        PrintWriter out = response.getWriter();
+                        response.setContentType("text/plain");
+                        response.setCharacterEncoding("UTF-8");
+
+                        out.println(resourcePath+ " match with : " + map.getKey()+"\n\n");
+                        
+                         // Créer un pattern pour extraire les noms des paramètres
+                        Pattern keyPattern = Pattern.compile("\\{([^}]+)\\}");
+                        Matcher keyMatcher = keyPattern.matcher(map.getKey());
+                        
+                        int groupIndex = 1;
+                        while (keyMatcher.find() && groupIndex <= matcherPath.groupCount()) {
+                            String paramName = keyMatcher.group(1);
+                            String paramValue = matcherPath.group(groupIndex);
+                            out.println("[" + paramName + "] : " + paramValue);
+                            groupIndex++;
+                        }
+                        return;
+                    }
+                }    
                 PrintWriter out = response.getWriter();
                 out.print("erreur 404 Not found");
             }else {
@@ -134,6 +161,7 @@ public class FrontServlet extends HttpServlet {
                         }
                         
                         request.getRequestDispatcher(retour.getView()).forward(request, response);
+                        return;
                     } catch (Exception e) {
                         throw new ServletException(e);
                     
@@ -167,7 +195,8 @@ public class FrontServlet extends HttpServlet {
 
     }
 
-
+ 
+    
 
 
 
@@ -181,10 +210,10 @@ public class FrontServlet extends HttpServlet {
         try {
             work(request, response);
         } catch (Exception e) {
-            e.printStackTrace();
-            PrintWriter out = response.getWriter();
-            out.print(e);
-            // throw new ServletException(e);
+            // e.printStackTrace();
+            // PrintWriter out = response.getWriter();
+            // out.print(e);
+            throw new ServletException(e);
         }
     }
     
@@ -198,10 +227,10 @@ public class FrontServlet extends HttpServlet {
             work(request, response);
         } catch (Exception e) {
 
-            e.printStackTrace();
-            PrintWriter out = response.getWriter();
-            out.print(e);
-            // throw new ServletException(e);
+            // e.printStackTrace();
+            // PrintWriter out = response.getWriter();
+            // out.print(e);
+            throw new ServletException(e);
         }
     }
 }
