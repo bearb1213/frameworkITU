@@ -21,6 +21,7 @@ import java.util.regex.Pattern;
 import javax.sql.rowset.serial.SerialException;
 
 import com.frame.annotation.AnnotationGetteur;
+import com.frame.annotation.RequestParam;
 import com.frame.model.Mapping;
 import com.frame.model.ModelView;
 
@@ -155,21 +156,32 @@ public class FrontServlet extends HttpServlet {
             Object[] parameterToAssign = new Object[parameters.length];
             // assignation des parametre
             for (int i = 0; i < parameters.length; i++) {
-                String object = request.getParameter(parameters[i].getName());
-                if (object!= null) {
-                    if (parameters[i].getType().equals(int.class) || parameters[i].getType().equals(Integer.class)) {
-                        parameterToAssign[i] = Integer.parseInt(object);
-                        // parameterToAssign[i] = 1;
-                        
-                    } else if (parameters[i].getType().equals(double.class) || parameters[i].getType().equals(Double.class)) {
-                        parameterToAssign[i] = Double.parseDouble(object);
-                        // parameterToAssign[i] = 2.;
-                    } else if (parameters[i].getType().equals(float.class) || parameters[i].getType().equals(Float.class)) {
-                        parameterToAssign[i] = Float.parseFloat(object);
-                        // parameterToAssign[i] = 3.;
-                    } else if (parameters[i].getType().equals(String.class)) {
-                        parameterToAssign[i] = object;
-                    }
+                String object = null;
+                if (parameters[i].isAnnotationPresent(RequestParam.class)) {
+                    RequestParam Rparam = parameters[i].getAnnotation(RequestParam.class);
+                    object = request.getParameter(Rparam.value());
+                } else {
+                    object = request.getParameter(parameters[i].getName());
+                }
+                if (parameters[i].getType().equals(int.class) || parameters[i].getType().equals(Integer.class)) {
+                    
+                    if (object!= null) parameterToAssign[i] = Integer.parseInt(object);
+                    else parameterToAssign[i] = 0;
+                
+                } else if (parameters[i].getType().equals(double.class) || parameters[i].getType().equals(Double.class)) {
+                
+                    if (object!= null) parameterToAssign[i] = Double.parseDouble(object);
+                    else parameterToAssign[i]=0.;
+                
+                } else if (parameters[i].getType().equals(float.class) || parameters[i].getType().equals(Float.class)) {
+                
+                    if (object!=null) parameterToAssign[i] = Float.parseFloat(object);
+                    else parameterToAssign[i] = 0.;
+                
+                } else if (parameters[i].getType().equals(String.class)) {
+                
+                    parameterToAssign[i] = object;
+                
                 }
                 // PrintWriter out = response.getWriter();
                 // out.print(parameters[i].getName());
