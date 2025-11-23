@@ -109,12 +109,22 @@ public class FrontServlet extends HttpServlet {
                     Pattern pattern = Pattern.compile(regex);
                     Matcher matcherPath = pattern.matcher(resourcePath);
                     if (matcherPath.matches()) {
-                        Matcher matcherKey = pattern.matcher(map.getKey());
-                        while (matcherKey.find() || matcherPath.find()) {
-                            response.setContentType("text/plain");
-                            response.setCharacterEncoding("UTF-8");
-                            PrintWriter out = response.getWriter();
-                            out.print("["+matcherKey.group(1)+"] : " + matcherPath.group(1));
+                        PrintWriter out = response.getWriter();
+                        response.setContentType("text/plain");
+                        response.setCharacterEncoding("UTF-8");
+
+                        out.println(resourcePath+ " match with : " + map.getKey()+"\n\n");
+                        
+                         // Créer un pattern pour extraire les noms des paramètres
+                        Pattern keyPattern = Pattern.compile("\\{([^}]+)\\}");
+                        Matcher keyMatcher = keyPattern.matcher(map.getKey());
+                        
+                        int groupIndex = 1;
+                        while (keyMatcher.find() && groupIndex <= matcherPath.groupCount()) {
+                            String paramName = keyMatcher.group(1);
+                            String paramValue = matcherPath.group(groupIndex);
+                            out.println("[" + paramName + "] : " + paramValue);
+                            groupIndex++;
                         }
                         return;
                     }
@@ -200,10 +210,10 @@ public class FrontServlet extends HttpServlet {
         try {
             work(request, response);
         } catch (Exception e) {
-            e.printStackTrace();
-            PrintWriter out = response.getWriter();
-            out.print(e);
-            // throw new ServletException(e);
+            // e.printStackTrace();
+            // PrintWriter out = response.getWriter();
+            // out.print(e);
+            throw new ServletException(e);
         }
     }
     
@@ -217,10 +227,10 @@ public class FrontServlet extends HttpServlet {
             work(request, response);
         } catch (Exception e) {
 
-            e.printStackTrace();
-            PrintWriter out = response.getWriter();
-            out.print(e);
-            // throw new ServletException(e);
+            // e.printStackTrace();
+            // PrintWriter out = response.getWriter();
+            // out.print(e);
+            throw new ServletException(e);
         }
     }
 }

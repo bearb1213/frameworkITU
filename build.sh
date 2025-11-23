@@ -44,8 +44,8 @@ echo "pwd : "
 pwd 
 
 SOURCE_FILE="frameWork.jar"
-DEST1="/d/prog/semestre 5/framework/frameworkITUTest/webapp/WEB-INF/lib"
-DEST2="/d/prog/semestre 5/framework/frameworkITUTest/lib"
+DEST1="/home/tsila/Documents/S5/framework/frameworkITUTest/webapp/WEB-INF/lib"
+DEST2="/home/tsila/Documents/S5/framework/frameworkITUTest/lib"
 
 # # Créer les répertoires de destination s'ils n'existent pas
 # mkdir -p "$DEST1"
