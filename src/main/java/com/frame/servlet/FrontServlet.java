@@ -36,7 +36,9 @@ import jakarta.servlet.http.HttpServletResponse;
 
 public class FrontServlet extends HttpServlet {
 
-    private Map<String , Mapping > mappings;
+    private Map<String , Mapping > getMappings;
+    private Map<String , Mapping > postMappings;
+
     private String packageName;
  
     @Override
@@ -52,7 +54,8 @@ public class FrontServlet extends HttpServlet {
                 packageName = "";
             }
 
-            mappings=AnnotationGetteur.getAllMapping(packageName);
+            getMappings=AnnotationGetteur.getAllGetMappings(packageName);
+            postMappings=AnnotationGetteur.getAllPostMappings(packageName);
         } catch (Exception e) {
             System.out.println("Fichier de configuration non present");
         } finally {
@@ -104,9 +107,24 @@ public class FrontServlet extends HttpServlet {
             }
             
         } else {
-            
+            String methodeHttp = request.getMethod();
             resourcePath = "/"+resourcePath;
-            Mapping mapping = mappings.get(resourcePath);
+            Mapping mapping ;
+            Map<String , Mapping> mappings;
+            switch (methodeHttp) {
+                case "GET":
+                    mapping=getMappings.get(resourcePath);
+                    mappings=getMappings;
+                    break;
+                case "POST" :
+                    mapping=postMappings.get(resourcePath);
+                    mappings=postMappings;
+                    break;
+                default:
+                    mapping=getMappings.get(resourcePath);
+                    mappings=getMappings;
+                    break;
+            }
             if (mapping==null) {
                 for (Entry<String , Mapping> map : mappings.entrySet()) {
                     String regex = map.getKey().replaceAll("\\{([^}]+)\\}", "([^/]+)");

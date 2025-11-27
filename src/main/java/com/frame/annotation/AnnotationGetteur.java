@@ -185,28 +185,18 @@ public class AnnotationGetteur {
         return post;
     }
 
-    public static List<PutMapping> getAllPutMapping(String packageProject)throws Exception{
-        List<PutMapping> put = new ArrayList<>();
+    public static List<RequestMapping> getAllPutMapping(String packageProject)throws Exception{
+        List<RequestMapping> put = new ArrayList<>();
         for (Method method : getAllMethodsWithAnnotation(packageProject)) {
-            if (method.isAnnotationPresent(PutMapping.class)) {
-                put.add(method.getAnnotation(PutMapping.class));
+            if (method.isAnnotationPresent(RequestMapping.class)) {
+                put.add(method.getAnnotation(RequestMapping.class));
             }
         }
 
         return put;
     }
 
-    public static List<DeleteMapping> getAllDeleteMapping(String packageProject)throws Exception{
-        List<DeleteMapping> delete = new ArrayList<>();
-        for (Method method : getAllMethodsWithAnnotation(packageProject)) {
-            if (method.isAnnotationPresent(DeleteMapping.class)) {
-                delete.add(method.getAnnotation(DeleteMapping.class));
-            }
-        }
-
-        return delete;
-    }
-
+    
     public static Map<String ,Mapping> getAllMapping(String packageProject) throws Exception{
         Map<String,Mapping> mappings = new HashMap<>();
         List<Class<?>> clazzes = getAllClassesController(packageProject);
@@ -224,15 +214,11 @@ public class AnnotationGetteur {
                         Mapping mapping = new Mapping(class1, method, post.value(), "POST");
                         mappings.put(mapping.getPath(),mapping);
                         
-                    } else if(method.isAnnotationPresent(PutMapping.class)) {
-                        PutMapping put = method.getAnnotation(PutMapping.class) ;
-                        Mapping mapping = new Mapping(class1, method, put.value(), "PUT");
+                    } else if(method.isAnnotationPresent(RequestMapping.class)) {
+                        RequestMapping put = method.getAnnotation(RequestMapping.class) ;
+                        Mapping mapping = new Mapping(class1, method, put.value(), "ALL");
                         mappings.put(mapping.getPath(),mapping);
                         
-                    } else if(method.isAnnotationPresent(DeleteMapping.class)) {
-                        DeleteMapping delete = method.getAnnotation(DeleteMapping.class) ;
-                        Mapping mapping = new Mapping(class1, method, delete.value(), "DELETE");
-                        mappings.put(mapping.getPath(),mapping);
                     }
                 }
             // }
@@ -240,5 +226,52 @@ public class AnnotationGetteur {
         return mappings;
     }
 
+    public static Map<String ,Mapping> getAllGetMappings(String packageProject) throws Exception{
+        Map<String,Mapping> mappings = new HashMap<>();
+        List<Class<?>> clazzes = getAllClassesController(packageProject);
+        for (Class<?> class1 : clazzes) {
+            // if (class1.isAnnotationPresent(Controller.class)) {
+                
+                for (Method method : class1.getDeclaredMethods()){
+                    if (method.isAnnotationPresent(GetMapping.class)) {
+                        GetMapping get = method.getAnnotation(GetMapping.class) ;
+                        Mapping mapping = new Mapping(class1, method,get.value(), "GET");
+                        mappings.put(mapping.getPath(),mapping);
+                        
+                    }  else if(method.isAnnotationPresent(RequestMapping.class)) {
+                        RequestMapping put = method.getAnnotation(RequestMapping.class) ;
+                        Mapping mapping = new Mapping(class1, method, put.value(), "ALL");
+                        mappings.put(mapping.getPath(),mapping);
+                        
+                    } 
+                }
+            // }
+        }
+        return mappings;
+    }
+
+    public static Map<String ,Mapping> getAllPostMappings(String packageProject) throws Exception{
+        Map<String,Mapping> mappings = new HashMap<>();
+        List<Class<?>> clazzes = getAllClassesController(packageProject);
+        for (Class<?> class1 : clazzes) {
+            // if (class1.isAnnotationPresent(Controller.class)) {
+                
+                for (Method method : class1.getDeclaredMethods()){
+                     if(method.isAnnotationPresent(PostMapping.class)) {
+                        PostMapping post = method.getAnnotation(PostMapping.class) ;
+                        Mapping mapping = new Mapping(class1, method, post.value(), "POST");
+                        mappings.put(mapping.getPath(),mapping);
+                        
+                    } else if(method.isAnnotationPresent(RequestMapping.class)) {
+                        RequestMapping put = method.getAnnotation(RequestMapping.class) ;
+                        Mapping mapping = new Mapping(class1, method, put.value(), "ALL");
+                        mappings.put(mapping.getPath(),mapping);
+                        
+                    }
+                }
+            // }
+        }
+        return mappings;
+    }
 
 }
