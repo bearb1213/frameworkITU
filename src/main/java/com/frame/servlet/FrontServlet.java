@@ -10,7 +10,11 @@ import java.io.OutputStream;
 import java.io.PrintWriter;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
+import java.lang.reflect.ParameterizedType;
+import java.lang.reflect.Type;
 import java.nio.file.Files;
+import java.util.Arrays;
+import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -147,8 +151,8 @@ public class FrontServlet extends HttpServlet {
 
                     }
                 }    
-                PrintWriter out = response.getWriter();
-                out.print("erreur 404 Not found");
+                throw new ServletException("404 not found");
+                
             }else {
                 traite(request, response, mapping , null);
                 return;
@@ -209,6 +213,20 @@ public class FrontServlet extends HttpServlet {
                 
                     parameterToAssign[i] = object;
                 
+                } else if (parameters[i].getType().isAssignableFrom(Map.class)){
+                    
+                    if (isMapStringObject(parameters[i])){
+                        Enumeration<String> parameterNames = request.getParameterNames();
+                        Map<String , Object> map = new HashMap<>();
+                        while (parameterNames.hasMoreElements()) {
+                            String paramName = parameterNames.nextElement();
+                            Object paramValue = cast(request.getParameter(paramName));
+                            map.put(paramName, paramValue);
+                        }
+                        parameterToAssign[i] = map;
+                    } else {
+                        throw new Exception("Le map doit etre de type Map<String ,Object>");
+                    }
                 }
              
             }
@@ -263,6 +281,43 @@ public class FrontServlet extends HttpServlet {
 
     }
 
+    private Object cast(Object value){
+        if (value==null) return null;
+        if(value.getClass().isAssignableFrom(String.class)){
+            String val = (String) (value);
+            if (val.isEmpty()) return "";
+            try {
+                Integer i = Integer.parseInt(val);
+                return i;
+            } catch (Exception e) {
+            }
+            try {
+                Double d = Double.parseDouble(val);
+                return d;
+            } catch (Exception e) {
+            }
+
+            return (String) value;
+        }
+        return null;
+    }
+
+    private boolean isMapStringObject(Parameter p) throws Exception{
+        Type type = p.getParameterizedType();
+
+        ParameterizedType pType = (ParameterizedType) type;
+
+        if (pType.getRawType() != Map.class) {
+            return false;
+        }
+        
+        Type[] typeArgs = pType.getActualTypeArguments();
+        
+        // Vérifier Map<String, Object>
+        return typeArgs.length == 2 && 
+               typeArgs[0] == String.class && 
+               typeArgs[1] == Object.class;
+    }
 
  
     
