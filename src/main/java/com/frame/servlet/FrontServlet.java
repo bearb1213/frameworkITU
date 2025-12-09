@@ -8,6 +8,7 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.PrintWriter;
+import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
 import java.lang.reflect.ParameterizedType;
@@ -29,6 +30,7 @@ import com.frame.annotation.AnnotationGetteur;
 import com.frame.annotation.RequestParam;
 import com.frame.model.Mapping;
 import com.frame.model.ModelView;
+import com.frame.util.Utilitaire;
 
 import jakarta.servlet.ServletException;
 import jakarta.servlet.ServletContext;
@@ -215,24 +217,34 @@ public class FrontServlet extends HttpServlet {
                 
                 } else if (parameters[i].getType().isAssignableFrom(Map.class)){
                     
-                    if (isMapStringObject(parameters[i])){
+                    if (Utilitaire.isMapStringObject(parameters[i])){
                         Enumeration<String> parameterNames = request.getParameterNames();
                         Map<String , Object> map = new HashMap<>();
                         while (parameterNames.hasMoreElements()) {
                             String paramName = parameterNames.nextElement();
-                            Object paramValue = cast(request.getParameter(paramName));
+                            Object paramValue = Utilitaire.cast(request.getParameter(paramName));
                             map.put(paramName, paramValue);
                         }
                         parameterToAssign[i] = map;
                     } else {
                         throw new Exception("Le map doit etre de type Map<String ,Object>");
                     }
+                } else if (List.class.isAssignableFrom(parameters[i].getType())) {
+                    List<Object> list = (List<Object>) parameters[i].getType().getDeclaredConstructor().newInstance();
+                    Object[] paramArray = assignToArray(request, response, (Class<?>) (((ParameterizedType)parameters[i].getParameterizedType()).getActualTypeArguments()[0]), parameters[i].getName());
+                    for (Object o : paramArray) {
+                        list.add(o);
+                    }
+                    parameterToAssign[i]= list;
+
+                }else {
+                    parameterToAssign[i] = assignToObject(request, response, parameters[i].getType(), parameters[i].getName());
                 }
              
             }
             // invocation de la methode
 
-            
+
             Object retour = method.invoke(instance, parameterToAssign);
             if (retour.getClass().equals(ModelView.class)) {
                 ModelView mv = (ModelView) retour;
@@ -282,50 +294,127 @@ public class FrontServlet extends HttpServlet {
 
     }
 
-    private Object cast(Object value){
-        if (value==null) return null;
-        if(value.getClass().isAssignableFrom(String.class)){
-            String val = (String) (value);
-            if (val.isEmpty()) return "";
-            try {
-                Integer i = Integer.parseInt(val);
-                return i;
-            } catch (Exception e) {
-            }
-            try {
-                Double d = Double.parseDouble(val);
-                return d;
-            } catch (Exception e) {
-            }
-
-            return (String) value;
-        }
-        return null;
-    }
-
-    private boolean isMapStringObject(Parameter p) throws Exception{
-        Type type = p.getParameterizedType();
-
-        ParameterizedType pType = (ParameterizedType) type;
-
-        if (pType.getRawType() != Map.class) {
-            return false;
-        }
-        
-        Type[] typeArgs = pType.getActualTypeArguments();
-        
-        // Vérifier Map<String, Object>
-        return typeArgs.length == 2 && 
-               typeArgs[0] == String.class && 
-               typeArgs[1] == Object.class;
-    }
-
- 
+    
     
 
+    
+
+    private Object assignToObject(HttpServletRequest request, HttpServletResponse response , Class<?> clazz , String prefixe) throws Exception{
+        try {
+            
+            if (clazz.isArray()) {
+                return assignToArray(request, response, clazz.getComponentType(), prefixe);
+            }
+            
+            Field[] fields = clazz.getDeclaredFields();
+            Object object = clazz.getDeclaredConstructor().newInstance();
+            Object parametre ;
+            String methodName = "";
+            Method m ;
+            for (Field field : fields) {
+                parametre = null;
+                m = null;
+                methodName = "";
+                try {
+                    // creation et invoke de la methode 
+                    methodName = "set"+Utilitaire.capitalizeFirst(field.getName());
+                    System.out.println("\n\nmethode : " + methodName);
+                    m = clazz.getDeclaredMethod(methodName , field.getType());
+                    if (Utilitaire.isTypeGenerique(field.getType())) {
+                        System.out.println("Type generique");
+                        parametre = Utilitaire.cast(request.getParameter(prefixe+"."+field.getName()) , field.getType());
+                    } else if (field.getType().isArray()){
+
+                        if (Utilitaire.isTypeGeneriqueArray(field.getType())) {
+                            System.out.println("Array de type generique");
+                            String[] args = request.getParameterValues(prefixe+"."+field.getName());
+                            Object[] paramArray = new Object[args.length];
+                            for (int i = 0; i < args.length; i++) {
+                                paramArray[i] = Utilitaire.cast(args[i], field.getType().getComponentType());
+                            }
+
+                            parametre = paramArray;
+                        } else {
+                            parametre = assignToArray(request, response, field.getType().getComponentType(), prefixe+"."+field.getName());
+                        }
+                    } else if (List.class.isAssignableFrom(field.getType())) {
+                        if (Utilitaire.isListObjectGenerique(field.getGenericType())) {
+                            System.out.println("List de type generique");
+                            String[] args = request.getParameterValues(prefixe+"."+field.getName());
+                            List<Object> paramArray = (List<Object>) field.getType().getDeclaredConstructor().newInstance();
+                            for (int i = 0; i < args.length; i++) {
+                                Object val = Utilitaire.cast(args[i], (Class<?>) ((ParameterizedType) field.getGenericType()).getActualTypeArguments()[0]);
+                                paramArray.add(val);
+                            }
+
+                            parametre = paramArray;
+                        } else {
+                            System.out.println("List d'objet ");
+                            List<Object> list = (List<Object>) field.getType().getDeclaredConstructor().newInstance();
+                            Object[] paramArray = assignToArray(request, response, (Class<?>) ((ParameterizedType) field.getGenericType()).getActualTypeArguments()[0], prefixe+"."+field.getName());
+                            for (Object o : paramArray) {
+                                list.add(o);
+                            }
+                            parametre = list;
+                        }
+                    } else {
+                        parametre = assignToObject(request, response, field.getType(), prefixe+"."+field.getName());
+                    } 
+                    m.invoke(object, parametre);
+
+                } catch (NoSuchMethodException nsm){
+                    System.err.println("Setteur Innexistant dans la class "+clazz.getName()+" pour le champ "+field.getName());
+                }
+                catch (Exception ex) {
+                    ex.printStackTrace();
+                    throw ex;
+                }
+                
+            }
+            return object;
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw e;
+        }
+
+    }
+    private Object[] assignToArray(HttpServletRequest request, HttpServletResponse response , Class<?> clazz , String prefixe) throws Exception{
+        try {
+            Object[] array = new Object[getTailleArray(request, response, prefixe)];
+            for (int i = 0; i < array.length; i++) {
+                array[i] = assignToObject(request, response, clazz, prefixe+"["+i+"]");
+            }
+            return array;
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw e;
+        }
+    }
+    
+    
+
+ 
+    private int getTailleArray(HttpServletRequest request, HttpServletResponse response,String prefixe)throws Exception{
+        Enumeration<String> parameterNames = request.getParameterNames();
+        int taille = 0;
+        while (parameterNames.hasMoreElements()) {
+            String paramName = parameterNames.nextElement();
+            if (paramName.startsWith(prefixe)) {
+                try {
+                    String[] parts = paramName.split(prefixe + "\\[");
+                    taille = Math.max(taille , parts.length > 1 ? Integer.parseInt(parts[1].split("\\]")[0]) : 0);
+                } catch (Exception e) {
+                }
+            }
+        } 
+        return taille+1; 
+    }
 
 
+    
 
+    
 
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response) 
