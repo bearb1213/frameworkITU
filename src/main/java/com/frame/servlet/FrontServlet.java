@@ -28,6 +28,8 @@ import javax.sql.rowset.serial.SerialException;
 
 import com.frame.annotation.AnnotationGetteur;
 import com.frame.annotation.RequestParam;
+import com.frame.annotation.Json;
+import com.frame.model.ApiResponse;
 import com.frame.model.Mapping;
 import com.frame.model.ModelView;
 import com.frame.util.Utilitaire;
@@ -148,15 +150,20 @@ public class FrontServlet extends HttpServlet {
                             params.put(paramName, paramValue);
                             groupIndex++;
                         }
-                        traite(request, response, map.getValue(), params);
+                        System.out.println("\n\n\n\nNIsy Matchhh\n\n\n");
+                        traiterRequest(request, response, map.getValue(), params , map.getValue().getMethod().isAnnotationPresent(Json.class));
                         return;
 
                     }
                 }    
-                throw new ServletException("404 not found");
+                response.setStatus(HttpServletResponse.SC_NOT_FOUND);
+                response.setContentType("text/html");
+                PrintWriter out = response.getWriter();
+                out.print("404 Not Found : La ressource "+resourcePath+" n'existe pas");
+                return;
                 
             }else {
-                traite(request, response, mapping , null);
+                traiterRequest(request, response, mapping , null , mapping.getMethod().isAnnotationPresent(Json.class));
                 return;
             }
             
@@ -164,7 +171,7 @@ public class FrontServlet extends HttpServlet {
         
     }
 
-    private void traite(HttpServletRequest request, HttpServletResponse response,Mapping mapping , Map<String , String> arguments)
+    private void traiterRequest(HttpServletRequest request, HttpServletResponse response,Mapping mapping , Map<String , String> arguments,boolean isJson)
             throws ServletException, IOException {
         
         try {
@@ -244,17 +251,42 @@ public class FrontServlet extends HttpServlet {
             }
             // invocation de la methode
 
+            Object retour ;
+            try {
+                retour = method.invoke(instance, parameterToAssign);
+                
+            } catch (Exception e) {
+                if (isJson) {
+                    response.setContentType("application/json");
+                    response.setCharacterEncoding("UTF-8");
+                    PrintWriter out = response.getWriter();
+                    ApiResponse<?> apiResponse = new ApiResponse<>(500, "Erreur Serveur", e.getMessage());
+                    String jsonResponse = Utilitaire.jsonify(apiResponse);
+                    out.print(jsonResponse);
+                    return;
+                } else {
+                    throw e;
+                }
+            }
 
-            Object retour = method.invoke(instance, parameterToAssign);
             if (retour.getClass().equals(ModelView.class)) {
                 ModelView mv = (ModelView) retour;
-                Map<String ,Object> attributs = mv.getAttributs();
+                Map<String ,Object> attributs = mv.getAttributes();
                 if (attributs != null && !attributs.isEmpty()) {   
                     for (Entry<String , Object> attribut : attributs.entrySet()) {
                         request.setAttribute(attribut.getKey(),attribut.getValue());
                     }
+                } 
+                if (isJson) {
+                    response.setContentType("application/json");
+                    response.setCharacterEncoding("UTF-8");
+                    PrintWriter out = response.getWriter();
+                    ApiResponse<?> apiResponse = new ApiResponse<>(200, "Success", mv.getAttributes());
+                    String jsonResponse = Utilitaire.jsonify(apiResponse);
+                    out.print(jsonResponse);
+                } else {
+                    request.getRequestDispatcher(mv.getView()).forward(request, response);
                 }
-                request.getRequestDispatcher(mv.getView()).forward(request, response);
                 return;
                 // si le retour est string 
             } else if (retour.getClass().equals(String.class)){
@@ -266,35 +298,33 @@ public class FrontServlet extends HttpServlet {
                 out.print(str);
                 return;
             } else {
-                throw new ServletException("Type de retour invalide : "+retour.getClass().getName());
+                response.setContentType("application/json");
+                response.setCharacterEncoding("UTF-8");
+                PrintWriter out = response.getWriter();
+                ApiResponse<?> apiResponse = new ApiResponse<>(200, "Success", retour);
+                String jsonResponse = Utilitaire.jsonify(apiResponse);
+                out.print(jsonResponse);
+                return;
             }
         } catch (Exception e) {
             e.printStackTrace();
-            throw new ServletException(e);
+            if (isJson) {
+                response.setContentType("application/json");
+                response.setCharacterEncoding("UTF-8");
+                PrintWriter out = response.getWriter();
+                ApiResponse<?> apiResponse = new ApiResponse<>(500, "Erreur Serveur", e.getMessage());
+                String jsonResponse = Utilitaire.jsonify(apiResponse);
+                out.print(jsonResponse);
+                return;
+            } else {
+                throw new ServletException(e);
+            }
         } 
     
     }
 
-
-
-    private void print(HttpServletRequest request, HttpServletResponse response)
-            throws ServletException, IOException {
-            
-            
-        PrintWriter out = response.getWriter();
-        try {
-            out.println("package name : "+packageName);
-            
-        } catch (Exception e) {
-            response.setContentType("text/plain");
-            response.setCharacterEncoding("UTF-8");
-            out.println(e.getMessage());
-        }
-
-
-    }
-
     
+
     
 
     
@@ -391,10 +421,7 @@ public class FrontServlet extends HttpServlet {
             throw e;
         }
     }
-    
-    
 
- 
     private int getTailleArray(HttpServletRequest request, HttpServletResponse response,String prefixe)throws Exception{
         Enumeration<String> parameterNames = request.getParameterNames();
         int taille = 0;
@@ -410,11 +437,6 @@ public class FrontServlet extends HttpServlet {
         } 
         return taille+1; 
     }
-
-
-    
-
-    
 
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response) 
@@ -447,4 +469,26 @@ public class FrontServlet extends HttpServlet {
             throw new ServletException(e);
         }
     }
+
+
+
+    private void print(HttpServletRequest request, HttpServletResponse response)
+            throws ServletException, IOException {
+            
+            
+        PrintWriter out = response.getWriter();
+        try {
+            out.println("package name : "+packageName);
+            
+        } catch (Exception e) {
+            response.setContentType("text/plain");
+            response.setCharacterEncoding("UTF-8");
+            out.println(e.getMessage());
+        }
+
+
+    }
+
+    
+    
 }

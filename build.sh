@@ -7,6 +7,11 @@ LIB_DIR="lib"
 JAR_NAME="frameWork.jar"
 MAIN_CLASS="com.frame.Main"  # ⚠️ change ça selon ton projet
 
+echo "Démarrage de la compilation..."
+echo "Répertoire source: $SRC_DIR"
+echo "Répertoire de destination: $TARGET_DIR"
+
+
 mkdir -p "$TARGET_DIR"
 
 # Construire le classpath avec toutes les libs présentes dans lib/
@@ -58,4 +63,9 @@ rm -f "$DEST2/$(basename "$SOURCE_FILE")"
 cp "$SOURCE_FILE" "$DEST1"
 cp "$SOURCE_FILE" "$DEST2"
 
+# Copier aussi les dépendances Jackson
+cp ../lib/jackson-*.jar "$DEST1" 2>/dev/null || true
+cp ../lib/jackson-*.jar "$DEST2" 2>/dev/null || true
+
 echo "JAR remplace : $DEST1 , $DEST2"
+echo "Dépendances Jackson copiées"

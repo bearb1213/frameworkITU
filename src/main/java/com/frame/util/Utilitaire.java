@@ -6,6 +6,9 @@ import java.lang.reflect.Type;
 import java.util.List;
 import java.util.Map;
 
+import com.frame.model.ModelView;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 public class Utilitaire {
     public static boolean isMapStringObject(Parameter p) throws Exception{
         Type type = p.getParameterizedType();
@@ -93,6 +96,24 @@ public class Utilitaire {
         String fin = str.substring(1);
         return debut.toUpperCase()+fin;
     }
+
+    public static String jsonify(Object o){
+        if (o instanceof ModelView) {
+            return jsonify(((ModelView) o).getAttributes());
+        } else {
+            try {
+                ObjectMapper mapper = new ObjectMapper();
+                String json = mapper.writeValueAsString(o);
+                // System.out.println(json);
+                return json;
+            } catch (Exception e) {
+                e.printStackTrace();
+                return "{}";
+            }
+        }
+        
+    }
+
 
 
 }
