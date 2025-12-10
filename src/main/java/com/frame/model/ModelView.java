@@ -36,7 +36,7 @@ public class ModelView {
     public Object getAttribute(String key){
         return attributes.get(key);
     }
-    public Map<String ,Object> getAttributs(){
+    public Map<String ,Object> getAttributes(){
         return attributes;
     }
     public void setAttibutes(Map<String ,Object > attributes){
