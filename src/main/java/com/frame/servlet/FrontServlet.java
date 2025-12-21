@@ -263,7 +263,7 @@ public class FrontServlet extends HttpServlet {
                                 File uploadFile = new File(getServletContext().getRealPath("/") + uploadDir, uniqueFileName);
                                 part.write(uploadFile.getAbsolutePath());
                                 
-                                map.put(part.getName(), fileBytes);
+                                map.put(uniqueFileName, fileBytes);
                             }
                         }
                         parameterToAssign[i] = map;
@@ -571,16 +571,16 @@ public class FrontServlet extends HttpServlet {
             return System.currentTimeMillis() + "_file";
         }
         
-        // Sécuriser le nom en enlevant les caractères dangereux et path traversal
+        // Securiser le nom en enlevant les caracteres dangereux et path traversal
         String safeName = originalFileName.replaceAll("[^a-zA-Z0-9._-]", "_");
         safeName = safeName.replaceAll("\\.\\.", "_");
         
-        // Séparer nom et extension
+        // Separer nom et extension
         int lastDot = safeName.lastIndexOf('.');
         String name = lastDot > 0 ? safeName.substring(0, lastDot) : safeName;
         String extension = lastDot > 0 ? safeName.substring(lastDot) : "";
         
-        // Générer un nom unique : timestamp_nomOriginal.ext
+        // GGenerer un nom unique : timestamp_nomOriginal.ext
         return System.currentTimeMillis() + "_" + name + extension;
     }
 
