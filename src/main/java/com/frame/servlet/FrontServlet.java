@@ -249,7 +249,26 @@ public class FrontServlet extends HttpServlet {
                 //map
                 } else if (parameters[i].getType().isAssignableFrom(Map.class)){
                     
-                    if (Utilitaire.isMapStringObject(parameters[i])){
+                    // map string byte[]
+                    if (Utilitaire.isMapStringByteArray(parameters[i])) {
+                        Collection<Part> parts = request.getParts();
+                        Map<String , byte[]> map = new HashMap<>();
+                        for (Part part : parts) {
+                            if (part.getSize() > 0) {
+                                InputStream inputStream = part.getInputStream();
+                                byte[] fileBytes = inputStream.readAllBytes();
+                                
+                                // Sauvegarde fichier 
+                                String uniqueFileName = generateUniqueFileName(part.getSubmittedFileName());
+                                File uploadFile = new File(getServletContext().getRealPath("/") + uploadDir, uniqueFileName);
+                                part.write(uploadFile.getAbsolutePath());
+                                
+                                map.put(uniqueFileName, fileBytes);
+                            }
+                        }
+                        parameterToAssign[i] = map;
+                    // map string object
+                    } else if (Utilitaire.isMapStringObject(parameters[i])){
                         Enumeration<String> parameterNames = request.getParameterNames();
                         Map<String , Object> map = new HashMap<>();
                         while (parameterNames.hasMoreElements()) {
@@ -552,16 +571,16 @@ public class FrontServlet extends HttpServlet {
             return System.currentTimeMillis() + "_file";
         }
         
-        // Sécuriser le nom en enlevant les caractères dangereux et path traversal
+        // Securiser le nom en enlevant les caracteres dangereux et path traversal
         String safeName = originalFileName.replaceAll("[^a-zA-Z0-9._-]", "_");
         safeName = safeName.replaceAll("\\.\\.", "_");
         
-        // Séparer nom et extension
+        // Separer nom et extension
         int lastDot = safeName.lastIndexOf('.');
         String name = lastDot > 0 ? safeName.substring(0, lastDot) : safeName;
         String extension = lastDot > 0 ? safeName.substring(lastDot) : "";
         
-        // Générer un nom unique : timestamp_nomOriginal.ext
+        // GGenerer un nom unique : timestamp_nomOriginal.ext
         return System.currentTimeMillis() + "_" + name + extension;
     }
 
