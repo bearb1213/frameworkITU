@@ -27,6 +27,23 @@ public class Utilitaire {
                typeArgs[1] == Object.class;
     }
 
+    public static boolean isMapStringByteArray(Parameter p) throws Exception{
+        Type type = p.getParameterizedType();
+
+        ParameterizedType pType = (ParameterizedType) type;
+
+        if (pType.getRawType() != Map.class) {
+            return false;
+        }
+        
+        Type[] typeArgs = pType.getActualTypeArguments();
+        
+        // Vérifier Map<String, byte[]>
+        return typeArgs.length == 2 && 
+               typeArgs[0] == String.class && 
+               (typeArgs[1] == byte[].class || typeArgs[1] == Byte[].class);
+    }
+
     public static Object cast(Object value){
         if (value==null) return null;
         if(value.getClass().isAssignableFrom(String.class)){
