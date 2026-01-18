@@ -35,6 +35,7 @@ import com.frame.annotation.Json;
 import com.frame.model.ApiResponse;
 import com.frame.model.Mapping;
 import com.frame.model.ModelView;
+import com.frame.model.Session;
 import com.frame.util.Utilitaire;
 
 import jakarta.servlet.ServletException;
@@ -43,6 +44,7 @@ import jakarta.servlet.RequestDispatcher;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpSession;
 import jakarta.servlet.http.Part;
 import jakarta.servlet.annotation.MultipartConfig;
 
@@ -202,6 +204,8 @@ public class FrontServlet extends HttpServlet {
             // creation de l'instance
             Object instance = mapping.getClazz().getDeclaredConstructor().newInstance();
             // recupertation de la methode et ces parametres
+            HttpSession httpSession = null ;
+            Session session = null;
             Method method = mapping.getMethod();
             Parameter[] parameters = method.getParameters();
             Object[] parameterToAssign = new Object[parameters.length];
@@ -243,10 +247,17 @@ public class FrontServlet extends HttpServlet {
                 
                     if (object!=null) parameterToAssign[i] = Float.parseFloat(object);
                     else parameterToAssign[i] = 0.;
-                //string
+                    //string
                 } else if (parameters[i].getType().equals(String.class)) {
-                
+                    
                     parameterToAssign[i] = object;
+
+                //Session
+                } else if (parameters[i].getType().equals(Session.class)) {
+                    httpSession = request.getSession();
+                    session = new Session(httpSession);
+
+                    parameterToAssign[i] = session;
                 //map
                 } else if (parameters[i].getType().isAssignableFrom(Map.class)){
                     
@@ -350,6 +361,10 @@ public class FrontServlet extends HttpServlet {
                 // System.out.println("Invocation de parameteres classes : "+parameterToAssign[0].getClass().getComponentType().getName()+"\n\n");
 
                 retour = method.invoke(instance, parameterToAssign);
+
+                if(session!= null && httpSession!=null) {
+                    session.merge(httpSession);
+                }
                 
             } catch (Exception e) {
                 if (isJson) {
