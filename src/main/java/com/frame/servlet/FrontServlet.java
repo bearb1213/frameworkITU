@@ -30,6 +30,7 @@ import javax.sql.rowset.serial.SerialException;
 
 import com.frame.annotation.AnnotationGetteur;
 import com.frame.annotation.RequestParam;
+import com.frame.extension.FileExtension;
 import com.frame.annotation.Json;
 import com.frame.model.ApiResponse;
 import com.frame.model.Mapping;
@@ -264,6 +265,32 @@ public class FrontServlet extends HttpServlet {
                                 part.write(uploadFile.getAbsolutePath());
                                 
                                 map.put(uniqueFileName, fileBytes);
+                            }
+                        }
+                        parameterToAssign[i] = map;
+                    // map FileExtension byte[]
+                    } else if (Utilitaire.isMapFileExtensionByteArray(parameters[i])) {
+                        Collection<Part> parts = request.getParts();
+                        Map<FileExtension , byte[]> map = new HashMap<>();
+                        for (Part part : parts) {
+                            if (part.getSize() > 0) {
+                                InputStream inputStream = part.getInputStream();
+                                byte[] fileBytes = inputStream.readAllBytes();
+                                
+                                // Sauvegarde fichier 
+                                String uniqueFileName = generateUniqueFileName(part.getSubmittedFileName());
+                                File uploadFile = new File(getServletContext().getRealPath("/") + uploadDir, uniqueFileName);
+                                part.write(uploadFile.getAbsolutePath());
+                                
+                                String originalFileName = part.getSubmittedFileName();
+                                String fileExtension = "";
+                                int lastDotIndex = originalFileName.lastIndexOf('.');
+                                if (lastDotIndex != -1 && lastDotIndex < originalFileName.length() - 1) {
+                                    fileExtension = originalFileName.substring(lastDotIndex + 1);
+                                }
+
+                                FileExtension fileExt = new FileExtension(uniqueFileName, fileExtension );
+                                map.put(fileExt, fileBytes);
                             }
                         }
                         parameterToAssign[i] = map;

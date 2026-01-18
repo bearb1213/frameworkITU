@@ -9,6 +9,9 @@ import java.util.Map;
 import com.frame.model.ModelView;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+
+import com.frame.extension.FileExtension;
+
 public class Utilitaire {
     public static boolean isMapStringObject(Parameter p) throws Exception{
         Type type = p.getParameterizedType();
@@ -41,6 +44,23 @@ public class Utilitaire {
         // Vérifier Map<String, byte[]>
         return typeArgs.length == 2 && 
                typeArgs[0] == String.class && 
+               (typeArgs[1] == byte[].class || typeArgs[1] == Byte[].class);
+    }
+
+    public static boolean isMapFileExtensionByteArray(Parameter p) throws Exception{
+        Type type = p.getParameterizedType();
+
+        ParameterizedType pType = (ParameterizedType) type;
+
+        if (pType.getRawType() != Map.class) {
+            return false;
+        }
+        
+        Type[] typeArgs = pType.getActualTypeArguments();
+        
+        // Vérifier Map<FileExtension, byte[]>
+        return typeArgs.length == 2 && 
+               typeArgs[0] == FileExtension.class && 
                (typeArgs[1] == byte[].class || typeArgs[1] == Byte[].class);
     }
 
