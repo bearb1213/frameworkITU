@@ -30,7 +30,9 @@ import javax.sql.rowset.serial.SerialException;
 
 import com.frame.annotation.AnnotationGetteur;
 import com.frame.annotation.RequestParam;
+import com.frame.annotation.Role;
 import com.frame.extension.FileExtension;
+import com.frame.annotation.Authorized;
 import com.frame.annotation.Json;
 import com.frame.model.ApiResponse;
 import com.frame.model.Mapping;
@@ -60,7 +62,9 @@ public class FrontServlet extends HttpServlet {
 
     private String packageName;
     private String uploadDir ;
- 
+    private String loged ;
+    private String role ; 
+
     @Override
     public void init() throws ServletException{
         Properties prop = new Properties();
@@ -86,6 +90,18 @@ public class FrontServlet extends HttpServlet {
             File uploadDirFile = new File(getServletContext().getRealPath("/"), uploadDir);
             if (!uploadDirFile.exists()) {
                 uploadDirFile.mkdirs();
+            }
+
+            // loged
+            loged = prop.getProperty("session.loged");
+            if(loged==null || loged.isEmpty()){
+                loged = "loged";
+            }
+
+            // role 
+            role = prop.getProperty("session.role");
+            if (role==null || role.isEmpty()) {
+                role = "role";
             }
 
             getMappings=AnnotationGetteur.getAllGetMappings(packageName);
@@ -204,11 +220,22 @@ public class FrontServlet extends HttpServlet {
             // creation de l'instance
             Object instance = mapping.getClazz().getDeclaredConstructor().newInstance();
             // recupertation de la methode et ces parametres
-            HttpSession httpSession = null ;
+            HttpSession httpSession = request.getSession();
             Session session = null;
             Method method = mapping.getMethod();
             Parameter[] parameters = method.getParameters();
             Object[] parameterToAssign = new Object[parameters.length];
+            
+            // verification de authorized et role
+            if (!isAuthorized(httpSession, method)) {
+                response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                return;
+            } 
+            if (!hasRole(httpSession, method)) {
+                response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+                return;
+            }
+            
             // assignation des parametre
             for (int i = 0; i < parameters.length; i++) {
                 String object = null;
@@ -254,7 +281,6 @@ public class FrontServlet extends HttpServlet {
 
                 //Session
                 } else if (parameters[i].getType().equals(Session.class)) {
-                    httpSession = request.getSession();
                     session = new Session(httpSession);
 
                     parameterToAssign[i] = session;
@@ -352,6 +378,7 @@ public class FrontServlet extends HttpServlet {
                 }
              
             }
+            
             // invocation de la methode
 
             Object retour ;
@@ -360,6 +387,8 @@ public class FrontServlet extends HttpServlet {
                 // if (parameterToAssign.length >0)
                 // System.out.println("Invocation de parameteres classes : "+parameterToAssign[0].getClass().getComponentType().getName()+"\n\n");
 
+
+
                 retour = method.invoke(instance, parameterToAssign);
 
                 if(session!= null && httpSession!=null) {
@@ -367,6 +396,8 @@ public class FrontServlet extends HttpServlet {
                 }
                 
             } catch (Exception e) {
+                response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+                e.printStackTrace();
                 if (isJson) {
                     response.setContentType("application/json");
                     response.setCharacterEncoding("UTF-8");
@@ -624,6 +655,33 @@ public class FrontServlet extends HttpServlet {
         
         // GGenerer un nom unique : timestamp_nomOriginal.ext
         return System.currentTimeMillis() + "_" + name + extension;
+    }
+
+    private boolean isAuthorized(HttpSession session,Method method){
+        if (!method.isAnnotationPresent(Authorized.class))
+            return true;
+        if (session==null) 
+            return false;
+        Object objLoged = session.getAttribute(this.loged);
+        return objLoged!=null;
+    }
+
+    private boolean hasRole(HttpSession session , Method method ){
+        if (!method.isAnnotationPresent(Role.class))
+            return true;
+        if(session == null )
+            return false ;
+        Role roleAnn = method.getAnnotation(Role.class);
+        String hisRole = (String) session.getAttribute(this.role);
+        String roles = roleAnn.value();
+        String[] rolesArray = roles.split(",");
+        for (String role : rolesArray) {
+            role = role.trim();
+            if (hisRole.equals(role)) 
+                return true ;
+        }
+        return false;
+
     }
 
     @Override
